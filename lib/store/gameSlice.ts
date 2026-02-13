@@ -531,13 +531,14 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
     }
 
     // RESOLUTION LOGIC: Check for expired bets for THIS specific asset
-    // Resolve bet if: mode is classic, asset matches, status is active, and time has passed
+    // Note: Box mode bets are resolved in LiveChart.tsx when price crosses cells
+    // Only classic mode bets are resolved here
     if (!activeBets) return;
 
     activeBets.forEach((bet: ActiveBet) => {
-      // Resolve bet if: mode is classic, asset matches, status is active, and time has passed
       const betAsset = bet.asset || 'BNB'; // Fallback
 
+      // CLASSIC MODE RESOLUTION ONLY
       if (
         bet.mode === 'classic' &&
         betAsset === currentSelectedAsset &&
@@ -572,47 +573,54 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
 
         resolveBet(bet.id, won, payout);
 
-        // Update real balance if necessary
-        // Update real balance if necessary
+        // Update real balance after bet resolution
         if (won) {
           console.log(`[GameSlice] Win detected! Amount: ${payout}, Account: ${accountType}, Address: ${address}`);
-          console.log(`[GameSlice] updateBalance present: ${!!updateBalance}`);
         }
 
-        if (accountType === 'real' && address && won) {
-          // Optimistic update for instant feedback
-          if (updateBalance) {
-            console.log(`[GameSlice] Optimistically adding ${payout} to balance`);
-            updateBalance(payout, 'add');
+        if (accountType === 'real' && address) {
+          if (won) {
+            // Calculate net winnings (payout - original bet amount)
+            const netWinnings = payout - bet.amount;
+            console.log(`[GameSlice] Win! Bet: ${bet.amount}, Payout: ${payout}, Net Winnings: ${netWinnings}`);
+            
+            // Call API to credit net winnings
+            fetch('/api/balance/win', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userAddress: address,
+                winAmount: netWinnings,
+                betId: bet.id,
+                tokenAddress: (get() as any).selectedToken,
+                network: 'TEMPO'
+              })
+            }).then(async (res) => {
+              if (!res.ok) {
+                const err = await res.text();
+                console.error('[GameSlice] Win API Error:', err);
+                throw new Error(err);
+              }
+              const data = await res.json();
+              console.log('[GameSlice] Win API Success, new balance:', data.newBalance);
+              
+              // Update balance with the confirmed value from API
+              if (data.newBalance !== undefined) {
+                set({ houseBalance: data.newBalance });
+              }
+            }).catch((err) => {
+              console.error("Win API failed:", err);
+            });
           } else {
-            console.error("[GameSlice] updateBalance is missing!");
-          }
-
-          fetch('/api/balance/win', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userAddress: address,
-              winAmount: payout,
-              betId: bet.id,
-              tokenAddress: (get() as any).selectedToken,
-              network: 'TEMPO'
-            })
-          }).then(async (res) => {
-            if (!res.ok) {
-              const err = await res.text();
-              console.error('[GameSlice] Win API Error:', err);
-              throw new Error(err);
+            // Lost - refresh balance to ensure sync
+            if (fetchBalance) {
+              fetchBalance(address, (get() as any).selectedToken);
             }
-            console.log('[GameSlice] Win API Success');
-            if (fetchBalance) fetchBalance(address, (get() as any).selectedToken);
-          }).catch((err) => {
-            console.error("Win API failed, rolling back optimistic update:", err);
-            // Rollback optimistic update
-            if (updateBalance) updateBalance(payout, 'subtract');
-          });
-        } else if (accountType === 'demo' && won) {
-          updateBalance(payout, 'add');
+          }
+        } else if (accountType === 'demo') {
+          if (won) {
+            updateBalance(payout, 'add');
+          }
         }
       }
     });

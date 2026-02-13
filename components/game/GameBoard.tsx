@@ -37,7 +37,10 @@ export const GameBoard: React.FC = () => {
     activeTab,
     setActiveTab,
     userTier,
-    refreshWalletBalance
+    refreshWalletBalance,
+    fetchBalance,
+    selectedToken,
+    accountType
   } = useStore();
 
   const { wallets } = useWallets();
@@ -138,6 +141,14 @@ export const GameBoard: React.FC = () => {
   useEffect(() => {
     setTimeframeSeconds(selectedDuration);
   }, [selectedDuration, setTimeframeSeconds]);
+
+  // Auto-fetch balance when wallet tab is opened
+  useEffect(() => {
+    if (activeTab === 'wallet' && address && isConnected && accountType === 'real') {
+      console.log('[GameBoard] Wallet tab opened, fetching balance...');
+      fetchBalance(address, selectedToken);
+    }
+  }, [activeTab, address, isConnected, accountType, fetchBalance, selectedToken]);
 
   // Multiplier mapping based on duration
   const getMultiplier = (duration: number) => {

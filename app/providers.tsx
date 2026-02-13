@@ -47,6 +47,9 @@ function WalletSync() {
     setIsConnected,
     setNetwork,
     refreshWalletBalance,
+    fetchBalance,
+    selectedToken,
+    accountType
   } = useOverflowStore();
 
   useEffect(() => {
@@ -73,6 +76,12 @@ function WalletSync() {
         setIsConnected(true);
         setNetwork('TEMPO');
         refreshWalletBalance();
+        
+        // Also fetch house balance when wallet connects (only for real accounts)
+        if (accountType === 'real') {
+          console.log('[WalletSync] Fetching house balance on wallet connect...');
+          fetchBalance(wallet.address, selectedToken);
+        }
         return;
       }
 
@@ -85,7 +94,8 @@ function WalletSync() {
     syncWallet();
   }, [
     authenticated, privyWallets, privyReady,
-    setAddress, setIsConnected, setNetwork, refreshWalletBalance
+    setAddress, setIsConnected, setNetwork, refreshWalletBalance,
+    fetchBalance, selectedToken, accountType
   ]);
 
   return null;

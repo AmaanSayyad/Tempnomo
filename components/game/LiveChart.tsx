@@ -735,24 +735,43 @@ export const LiveChart: React.FC<LiveChartProps> = ({ betAmount, setBetAmount })
 
         // Update house balance via API (skip for demo mode)
         const isDemoMode = userAddress?.startsWith('0xDEMO');
+        const accountType = useStore.getState().accountType;
+        const selectedToken = useStore.getState().selectedToken;
 
-        if (userAddress && !isDemoMode) {
+        if (userAddress && !isDemoMode && accountType === 'real') {
           // Real mode - use API
           if (won) {
+            // For box mode, add the full payout (not net winnings)
+            // because the bet amount was already deducted when placing the bet
+            console.log(`[Box Mode] Win! Bet: ${bet.amount}, Payout: ${payout}, Adding to balance: ${payout}`);
+            
             fetch('/api/balance/win', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 userAddress,
-                winAmount: payout,
-                betId: bet.betId
+                winAmount: payout,  // Full payout, not net winnings
+                betId: bet.betId,
+                tokenAddress: selectedToken,
+                network: 'TEMPO'
               })
-            }).then(() => {
-              fetchBalance(userAddress);
+            }).then(async (res) => {
+              if (!res.ok) {
+                const err = await res.text();
+                console.error('[Box Mode] Win API Error:', err);
+                throw new Error(err);
+              }
+              const data = await res.json();
+              console.log('[Box Mode] Win API Success, new balance:', data.newBalance);
+              
+              // Update balance with the confirmed value from API
+              if (data.newBalance !== undefined) {
+                useStore.setState({ houseBalance: data.newBalance });
+              }
             }).catch(console.error);
           } else {
             // If lost, just refresh balance (already deducted)
-            fetchBalance(userAddress);
+            fetchBalance(userAddress, selectedToken);
           }
         } else if (isDemoMode && won) {
           // Demo mode - update locally on win (bet amount already subtracted)

@@ -31,6 +31,13 @@ export const BalanceDisplay: React.FC = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
+  // Auto-fetch balance when component mounts or address/token changes
+  React.useEffect(() => {
+    if (address && accountType === 'real' && !address.startsWith('0xDEMO')) {
+      fetchBalance(address, selectedToken);
+    }
+  }, [address, selectedToken, accountType, fetchBalance]);
+
   // Actions from other slices (using the unified store)
   const setAddress = useOverflowStore(state => state.setAddress);
   const setIsConnected = useOverflowStore(state => state.setIsConnected);
