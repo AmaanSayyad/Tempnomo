@@ -55,7 +55,7 @@ const TIP20_ABI = [
 async function main() {
     const privateKey = '0x2b9e3b8a095940cf3461e27bfb2bebb498df9a6381b76b9f9c48c9bbdc3c8192'
     const account = privateKeyToAccount(privateKey as `0x${string}`)
-    const recipient = getAddress('0xcc78505FE8707a1D85229BA0E7177aE26cE0f17D')
+    const recipient = getAddress('0xF7249B507F1f89Eaea5d694cEf5cb96F245Bc5b6')
     const tokenAddress = getAddress('0x20c0000000000000000000000000000000000001') // αUSD
 
     const client = createPublicClient({

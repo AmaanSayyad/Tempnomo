@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { ethers } from 'ethers';
 
 interface BetRequest {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current balance
-    const { data: userData, error: fetchError } = await supabase
+    const { data: userData, error: fetchError } = await supabaseAdmin
       .from('balances')
       .select('amount')
       .eq('wallet_address', userAddress)
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const newBalance = currentBalance - betAmount;
 
     // Deduct balance atomically (simple update for now, in prod use RPC/Transaction)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('balances')
       .update({
         amount: newBalance,

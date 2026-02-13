@@ -387,6 +387,12 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
 
       const data = await response.json();
 
+      // Update store balance with server response
+      const { setBalance } = get() as any;
+      if (setBalance && data.remainingBalance !== undefined) {
+        setBalance(data.remainingBalance);
+      }
+
       // Create ActiveBet object
       const activeBet: ActiveBet = {
         id: data.betId,
@@ -567,7 +573,21 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
         resolveBet(bet.id, won, payout);
 
         // Update real balance if necessary
+        // Update real balance if necessary
+        if (won) {
+          console.log(`[GameSlice] Win detected! Amount: ${payout}, Account: ${accountType}, Address: ${address}`);
+          console.log(`[GameSlice] updateBalance present: ${!!updateBalance}`);
+        }
+
         if (accountType === 'real' && address && won) {
+          // Optimistic update for instant feedback
+          if (updateBalance) {
+            console.log(`[GameSlice] Optimistically adding ${payout} to balance`);
+            updateBalance(payout, 'add');
+          } else {
+            console.error("[GameSlice] updateBalance is missing!");
+          }
+
           fetch('/api/balance/win', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -578,9 +598,19 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
               tokenAddress: (get() as any).selectedToken,
               network: 'TEMPO'
             })
-          }).then(() => {
+          }).then(async (res) => {
+            if (!res.ok) {
+              const err = await res.text();
+              console.error('[GameSlice] Win API Error:', err);
+              throw new Error(err);
+            }
+            console.log('[GameSlice] Win API Success');
             if (fetchBalance) fetchBalance(address, (get() as any).selectedToken);
-          }).catch(console.error);
+          }).catch((err) => {
+            console.error("Win API failed, rolling back optimistic update:", err);
+            // Rollback optimistic update
+            if (updateBalance) updateBalance(payout, 'subtract');
+          });
         } else if (accountType === 'demo' && won) {
           updateBalance(payout, 'add');
         }
