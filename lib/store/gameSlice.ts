@@ -574,53 +574,40 @@ export const createGameSlice: StateCreator<any> = (set, get) => ({
         resolveBet(bet.id, won, payout);
 
         // Update real balance after bet resolution
-        if (won) {
-          console.log(`[GameSlice] Win detected! Amount: ${payout}, Account: ${accountType}, Address: ${address}`);
-        }
-
-        if (accountType === 'real' && address) {
-          if (won) {
-            // Calculate net winnings (payout - original bet amount)
-            const netWinnings = payout - bet.amount;
-            console.log(`[GameSlice] Win! Bet: ${bet.amount}, Payout: ${payout}, Net Winnings: ${netWinnings}`);
-            
-            // Call API to credit net winnings
-            fetch('/api/balance/win', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userAddress: address,
-                winAmount: netWinnings,
-                betId: bet.id,
-                tokenAddress: (get() as any).selectedToken,
-                network: 'TEMPO'
-              })
-            }).then(async (res) => {
-              if (!res.ok) {
-                const err = await res.text();
-                console.error('[GameSlice] Win API Error:', err);
-                throw new Error(err);
-              }
-              const data = await res.json();
-              console.log('[GameSlice] Win API Success, new balance:', data.newBalance);
-              
-              // Update balance with the confirmed value from API
-              if (data.newBalance !== undefined) {
-                set({ houseBalance: data.newBalance });
-              }
-            }).catch((err) => {
-              console.error("Win API failed:", err);
-            });
-          } else {
-            // Lost - refresh balance to ensure sync
-            if (fetchBalance) {
-              fetchBalance(address, (get() as any).selectedToken);
-            }
-          }
-        } else if (accountType === 'demo') {
-          if (won) {
+        if (accountType === 'real' && address && won) {
+          // Optimistic update for instant feedback
+          if (updateBalance) {
             updateBalance(payout, 'add');
           }
+
+          fetch('/api/balance/win', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userAddress: address,
+              winAmount: payout, // Full payout (original bet + profit)
+              betId: bet.id,
+              tokenAddress: (get() as any).selectedToken,
+              network: 'TEMPO'
+            })
+          }).then(async (res) => {
+            if (!res.ok) {
+              const err = await res.text();
+              console.error('[GameSlice] Win API Error:', err);
+              throw new Error(err);
+            }
+            const data = await res.json();
+
+            // Update balance with the confirmed value from API
+            if (data.newBalance !== undefined) {
+              set({ houseBalance: data.newBalance });
+            }
+          }).catch((err) => {
+            console.error("Win API failed, rolling back optimistic update:", err);
+            if (updateBalance) updateBalance(payout, 'subtract');
+          });
+        } else if (accountType === 'demo' && won) {
+          updateBalance(payout, 'add');
         }
       }
     });

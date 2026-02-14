@@ -96,12 +96,32 @@ export const GameBoard: React.FC = () => {
         const provider = new ethers.BrowserProvider(ethereumProvider);
         const signer = await provider.getSigner();
 
+<<<<<<< Updated upstream
         toast.info(`Confirming ${blitzEntryFee} ${currencySymbol} Blitz Entry...`);
         const txResponse = await signer.sendTransaction({
           to: treasuryNormalized,
           value: ethers.parseEther(blitzEntryFee.toString()),
         });
+=======
+        const treasuryAddress = getTreasuryAddress();
+        const currentToken = TEMPO_TOKEN_LIST.find((t: any) => t.address === selectedToken) || TEMPO_TOKEN_LIST[0];
+
+        // TIP-20 transfer ABI
+        const tip20Abi = [
+          "function transfer(address to, uint256 amount) public returns (bool)"
+        ];
+
+        const tokenContract = new ethers.Contract(currentToken.address, tip20Abi, signer);
+        const amount = ethers.parseUnits(blitzEntryFee.toString(), currentToken.decimals);
+
+        toast.info(`Confirming ${blitzEntryFee} ${currentToken.symbol} Blitz Entry...`);
+
+        const txResponse = await tokenContract.transfer(getAddress(treasuryAddress), amount);
+>>>>>>> Stashed changes
         console.log("Tempo Blitz payment tx:", txResponse.hash);
+
+        // Wait for confirmation
+        await txResponse.wait();
       } else {
         // Fallback or legacy support if needed
         toast.info(`Entering Blitz on ${network}...`);
