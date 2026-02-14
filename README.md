@@ -181,25 +181,13 @@ flowchart TB
 
 ## Competitive landscape
 
-```mermaid
-quadrantChart
-    title Trust & speed vs Web3 binary options / prediction
-    x-axis Low trust --> High trust
-    y-axis Slow / high friction --> Fast / low friction
-    quadrant-1 "Target (Tempnomo)"
-    quadrant-2 "Legacy oracles"
-    quadrant-3 "Web2 binary (fraud risk)"
-    quadrant-4 "Pure on-chain (high gas, slow)"
-    "Tempnomo": [0.85, 0.9]
-    "Polymarket/Kalshi": [0.7, 0.5]
-    "Old oracles dApps": [0.5, 0.3]
-    "Web2 binary apps": [0.2, 0.6]
-```
-
-- **Tempnomo:** Fast (house balance, no per-bet tx), trust-minimized (Pyth + on-chain settlement for money in/out).
-- **Pure on-chain prediction:** Trustworthy but slow and expensive per action.
-- **Web2 binary:** Fast UX but opaque and often fraudulent.
-- **Legacy oracle dApps:** Better trust than Web2 but slower and less reliable than Pyth Hermes.
+| Solution | Trust | Speed / UX | Cost per action | Notes |
+|----------|--------|------------|------------------|-------|
+| **Tempnomo** | High (Pyth Hermes + on-chain settlement) | Very fast (house balance, no per-bet signing) | Zero gas per bet; gas only on deposit/withdraw | Target: oracle-bound binary options with minimal trust and &lt;0.001 ms settlement. |
+| **Polymarket / Kalshi** | High (on-chain or regulated) | Moderate (per-market resolution, slower settlement) | Higher friction per trade | Prediction markets; not sub-second binary options. |
+| **Pure on-chain prediction** | High | Slow (every action on-chain) | High gas per bet | Trustworthy but expensive and slow for high-frequency binary. |
+| **Web2 binary apps** | Low (opaque, often fraudulent) | Fast | N/A | Algorithmically biased; no verifiable oracle or on-chain settlement. |
+| **Legacy oracle dApps** | Moderate | Slow (stale oracles, downtime) | Variable | Better than Web2 but oracles crash on volatility; not Pyth-grade real time. |
 
 ---
 
