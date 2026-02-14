@@ -60,8 +60,17 @@ function WalletSync() {
       if (authenticated && privyWallets[0]) {
         const wallet = privyWallets[0];
 
+        // Ensure external wallet (e.g. MetaMask) is connected to this site so balance and deposit work
+        try {
+          const provider = await wallet.getEthereumProvider();
+          if (provider?.request) {
+            await provider.request({ method: 'eth_requestAccounts' });
+          }
+        } catch (e) {
+          console.warn('[WalletSync] Could not request accounts (wallet may be embedded):', e);
+        }
+
         // Force switch to Tempo if on wrong chain
-        // Using hex for comparison as some providers return hex
         const targetChainId = `eip155:${tempoChain.id}`;
         if (wallet.chainId !== targetChainId && wallet.chainId !== tempoChain.id.toString()) {
           try {
@@ -75,9 +84,11 @@ function WalletSync() {
         setAddress(wallet.address);
         setIsConnected(true);
         setNetwork('TEMPO');
-        refreshWalletBalance();
-        
-        // Also fetch house balance when wallet connects (only for real accounts)
+        await refreshWalletBalance();
+
+        // Refresh wallet balance again after a short delay (RPC can be slow; ensures UI updates)
+        setTimeout(() => refreshWalletBalance(), 500);
+
         if (accountType === 'real') {
           console.log('[WalletSync] Fetching house balance on wallet connect...');
           fetchBalance(wallet.address, selectedToken);

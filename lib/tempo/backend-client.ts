@@ -4,9 +4,33 @@
  * ONLY FOR SERVER-SIDE USE
  */
 
-import { createWalletClient, http, publicActions, parseUnits, type Address, getAddress } from 'viem';
+import { createWalletClient, http, publicActions, parseUnits, type Address, getAddress, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { defineChain } from 'viem';
+
+/**
+ * Normalize private key from env to format viem expects (Hex).
+ * Handles: 0x-prefixed hex, raw hex, or JSON array string (e.g. from MetaMask export).
+ */
+function normalizePrivateKey(raw: string): Hex {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('0x')) {
+    return trimmed as Hex;
+  }
+  if (trimmed.startsWith('[')) {
+    const arr = JSON.parse(trimmed) as number[];
+    if (!Array.isArray(arr) || arr.length !== 32) {
+      throw new Error('Invalid private key: JSON array must have 32 bytes');
+    }
+    const bytes = Uint8Array.from(arr);
+    const hex = '0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hex as Hex;
+  }
+  if (/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+    return ('0x' + trimmed) as Hex;
+  }
+  throw new Error('Invalid private key format: use 0x-prefixed hex, 64-char hex, or 32-byte JSON array');
+}
 
 // Define Tempo chain (reusing logic from providers)
 const tempoChain = defineChain({
@@ -59,13 +83,14 @@ export async function transferTokenFromTreasury(
     amount: number,
     tokenAddress: string
 ): Promise<string> {
-    const privateKey = process.env.TEMPO_TREASURY_SECRET_KEY;
+    const rawKey = process.env.TEMPO_TREASURY_SECRET_KEY;
 
-    if (!privateKey) {
+    if (!rawKey) {
         throw new Error('TEMPO_TREASURY_SECRET_KEY not configured');
     }
 
-    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    const privateKey = normalizePrivateKey(rawKey);
+    const account = privateKeyToAccount(privateKey);
     const client = createWalletClient({
         account,
         chain: tempoChain,

@@ -53,14 +53,16 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   // Quick select amounts (stablecoin amounts)
   const quickAmounts = [10, 50, 100, 500];
 
-  // Reset state when modal opens/closes
+  // Reset state when modal opens/closes; refresh wallet balance when opening
   useEffect(() => {
     if (!isOpen) {
       setAmount('');
       setError(null);
       setIsLoading(false);
+    } else {
+      refreshWalletBalance();
     }
-  }, [isOpen]);
+  }, [isOpen, refreshWalletBalance]);
 
   const validateAmount = (value: string): string | null => {
     if (!value || value.trim() === '') {
@@ -211,6 +213,11 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           <p className="text-[#00f5ff] text-xl font-bold font-mono flex items-center gap-2">
             {walletBalance.toFixed(4)} {currencySymbol}
           </p>
+          {walletBalance === 0 && (
+            <p className="text-amber-400/90 text-[10px] mt-2 font-mono">
+              Balance shows 0? In MetaMask, click &quot;Connect account&quot; so this site can see your {currencySymbol}. Then refresh the page.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">

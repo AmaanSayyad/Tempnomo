@@ -1,113 +1,323 @@
-# TEMPNOMO - High-Frequency Binary Options on Tempo
+# ☂️ Tempnomo
 
-Tempnomo is a decentralized, high-frequency binary options trading platform built on the **Tempo Testnet**. It features a hybrid custody model that combines the security of on-chain assets with the speed of off-chain execution, utilizing a custom "House Balance" system for instant trade settlement.
+**The first on-chain binary options trading dApp on Tempo.**
 
-## 🚀 Core Features
+*Trade binary options with oracle-bound resolution and minimal trust.*
 
--   **⚡ Blitz Protocol**: 30-second high-frequency trading rounds with instant settlement.
--   **🛡️ Hybrid Custody**: On-chain deposits/withdrawals via secure treasury, off-chain game logic for milli-second latency.
--   **🪙 Multi-Asset Support**: Trade predictions on **AlphaUSD**, **BetaUSD**, and other Tempo-native assets.
--   **🔐 Privy Integration**: Seamless social and Web3 wallet login (no extensions required).
--   **📊 Real-Time Feeds**: Live price charts powered by Pyth Network fixed oracles.
--   **🏆 Dynamic Leaderboard**: Real-time tracking of top traders and win streaks.
--   **💸 Automated Treasury**: Server-side secure automated withdrawals using `viem` and `supabase-admin`.
+Powered by **Tempo** + **Pyth Hermes** price attestations + **Off-chain state (Supabase)** + x402-style payments.
 
-## 🛠️ Technical Stack
+---
 
-### Frontend
--   **Next.js 14**: App Router & Server Actions.
--   **TypeScript**: Strict type safety.
--   **Tailwind CSS**: Custom design system with "TrueFocus" aesthetics.
--   **Zustand**: Global state management (Wallet, Balance, Game).
--   **Privy**: Wallet authentication and embedded wallets.
--   **Recharts/Framer Motion**: High-performance visualizations and animations.
+## Why Tempnomo?
 
-### Backend & Database
--   **Supabase**: PostgreSQL for user balances, bet history, and leaderboards.
--   **Row Level Security (RLS)**: Secure data access policies.
--   **Supabase Admin**: Server-side privileged operations for balance management.
+Binary options trading in Web3 barely existed. Web2 apps are often fraudulent and algorithmically biased. Real-time sub-second oracles were missing—so one news event or crash would take oracles down and break the experience for millions.
 
-### Blockchain
--   **Tempo Testnet** (Chain ID: 42431)
--   **viem**: Lightweight, type-safe Ethereum interface.
--   **TIP-20 Tokens**: AlphaUSD (`0x20c...`) and BetaUSD.
+- **590M+ crypto users** and **400M+ transactions every day**
+- One news / one big move / one crash → oracles crash → gap between demand and reality
 
-## 🏗️ Architecture
+**Tempnomo closes that gap:** every millisecond is tracked by Pyth oracles for real-time data. Trade 20+ Crypto, Stocks, Metals, and Forex on a live chart; bet without signing every transaction; settle in &lt;0.001 ms with a single treasury.
 
-The application follows a **Hybrid Execution Model**:
+---
 
-1.  **Deposit**: User sends tokens (AlphaUSD) to the Treasury on-chain.
-2.  **Sync**: Backend detects transfer and credits "House Balance" in Supabase.
-3.  **Trade**: Users place bets off-chain using House Balance (zero gas, instant).
-4.  **Settlement**: Smart contracts/Backend verify outcome and update House Balance.
-5.  **Withdraw**: User requests withdrawal; Server signs and executes Treasury transfer on-chain.
+## ✨ What Tempnomo Delivers
 
-## 📦 Getting Started
+| Capability | Description |
+|------------|-------------|
+| **Real-time resolution** | Pyth Hermes &lt;1s price attestations; no stale oracles |
+| **Unlimited bets, no per-tx signing** | House balance model: deposit once, trade many times |
+| **5s / 10s / 15s / 30s / 1m** | Binary options at multiple timeframes |
+| **1–10x leverage** | Trade in open crypto markets with configurable exposure |
+| **Single treasury** | One treasury for deposits and withdrawals; profit/loss netted |
+| **&lt;0.001 ms settlement** | Off-chain game state + on-chain only for deposits/withdrawals |
+
+*Like Binomo of Web2—but trust-minimized and 10× better for Web3.*
+
+---
+
+## How It Works
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant App as Tempnomo App
+    participant Pyth as Pyth Hermes
+    participant Supabase as Supabase
+    participant Treasury as Tempo Treasury
+
+    U->>App: Connect wallet (Privy)
+    U->>App: Deposit αUSD/βUSD/θUSD/pUSD
+    App->>Treasury: TIP-20 transfer
+    App->>Supabase: Credit house balance
+
+    loop Trade (no signing)
+        Pyth->>App: Real-time prices
+        U->>App: Bet (Classic UP/DOWN or Box multipliers)
+        App->>App: Resolve vs Pyth price at expiry
+        App->>Supabase: Update balance (profit/loss)
+    end
+
+    U->>App: Request withdrawal
+    App->>Supabase: Debit house balance
+    App->>Treasury: Server signs TIP-20 transfer to user
+    Treasury->>U: Tokens received
+```
+
+**5-step flow:**
+
+1. **Connect & deposit** — User connects wallet (Privy), then deposits AlphaUSD, BetaUSD, ThetaUSD, or PathUSD into the app treasury.
+2. **Choose mode** — **Classic**: UP/DOWN with expiry (5s–1m). **Box mode**: tap multiplier tiles; win if the live line touches the chosen tile at start.
+3. **Resolution** — The passing price line (Pyth-driven) is compared to strike (Classic) or tile (Box); outcome is determined at expiry.
+4. **Settlement** — Balance is updated off-chain in Supabase (profit/loss); no on-chain tx per bet.
+5. **Withdrawal** — User requests withdraw; backend deducts from house balance and sends tokens from the treasury wallet to the user (on-chain).
+
+---
+
+## Market Opportunity
+
+| Segment | Size / growth |
+|--------|----------------|
+| **Binary options / prediction** | $27.56B (2025) → ~$116B by 2034 (19.8% CAGR) |
+| **Crypto prediction markets** | $45B+ annual volume (e.g. Polymarket, Kalshi) |
+| **Crypto derivatives** | $86T+ annual volume (2025) |
+| **Crypto users** | 590M+ worldwide |
+
+---
+
+## Architecture
+
+### High-level system
+
+```mermaid
+flowchart TB
+    subgraph Client["Client (Next.js)"]
+        UI[React UI]
+        Privy[Privy Auth]
+        Zustand[Zustand Store]
+        UI --> Privy
+        UI --> Zustand
+    end
+
+    subgraph Oracles["Oracles"]
+        Pyth[Pyth Hermes]
+    end
+
+    subgraph Backend["Backend / APIs"]
+        API[Next.js API Routes]
+        API --> Balance[Balance APIs]
+        API --> Bet[Bet / Payout APIs]
+    end
+
+    subgraph Data["Data & Chain"]
+        Supabase[(Supabase)]
+        Tempo[Tempo Testnet]
+        Treasury[Treasury Wallet]
+    end
+
+    Client -->|Prices| Pyth
+    Client -->|Bets, Balance, Withdraw| API
+    API -->|House balance, history, leaderboard| Supabase
+    API -->|Deposit/Withdraw only| Tempo
+    Tempo --> Treasury
+```
+
+### Hybrid execution model
+
+```mermaid
+flowchart LR
+    subgraph OnChain["On-chain (Tempo)"]
+        D[Deposit TIP-20]
+        W[Withdraw TIP-20]
+    end
+
+    subgraph OffChain["Off-chain (Supabase + App)"]
+        HB[House Balance]
+        Bets[Bets & Resolution]
+        Payout[Payout Logic]
+    end
+
+    D --> HB
+    HB --> Bets
+    Bets --> Payout
+    Payout --> W
+```
+
+- **On-chain:** Deposits (user → treasury), withdrawals (treasury → user). TIP-20 tokens on Tempo (Chain ID 42431).
+- **Off-chain:** All betting, resolution, and balance updates via Supabase and app logic; Pyth Hermes for prices.
+
+### Infrastructure & tech stack
+
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend"]
+        Next[Next.js 16]
+        React[React 19]
+        Tailwind[Tailwind CSS]
+        Zustand[Zustand]
+        Privy[Privy]
+        Recharts[Recharts / Framer Motion]
+    end
+
+    subgraph Services["Services"]
+        Hermes[Pyth Hermes API]
+        Supabase[Supabase]
+        TempoRPC[Tempo RPC]
+    end
+
+    subgraph Blockchain["Tempo"]
+        TIP20[TIP-20 Tokens]
+        Treasury[Treasury Wallet]
+    end
+
+    Next --> React
+    Next --> Privy
+    Next --> Hermes
+    Next --> Supabase
+    Next --> TempoRPC
+    TempoRPC --> TIP20
+    TempoRPC --> Treasury
+```
+
+---
+
+## Competitive landscape
+
+```mermaid
+quadrantChart
+    title Trust & speed vs Web3 binary options / prediction
+    x-axis Low trust --> High trust
+    y-axis Slow / high friction --> Fast / low friction
+    quadrant-1 "Target (Tempnomo)"
+    quadrant-2 "Legacy oracles"
+    quadrant-3 "Web2 binary (fraud risk)"
+    quadrant-4 "Pure on-chain (high gas, slow)"
+    "Tempnomo": [0.85, 0.9]
+    "Polymarket/Kalshi": [0.7, 0.5]
+    "Old oracles dApps": [0.5, 0.3]
+    "Web2 binary apps": [0.2, 0.6]
+```
+
+- **Tempnomo:** Fast (house balance, no per-bet tx), trust-minimized (Pyth + on-chain settlement for money in/out).
+- **Pure on-chain prediction:** Trustworthy but slow and expensive per action.
+- **Web2 binary:** Fast UX but opaque and often fraudulent.
+- **Legacy oracle dApps:** Better trust than Web2 but slower and less reliable than Pyth Hermes.
+
+---
+
+## Tech stack (aligned with codebase & .env)
+
+| Layer | Technology |
+|--------|------------|
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **UI** | React 19, Tailwind CSS 4, Framer Motion, Recharts, d3-scale/d3-shape |
+| **State** | Zustand (wallet, balance, game, history) |
+| **Auth** | Privy (embedded + external wallets) |
+| **Prices** | Pyth Hermes (`@pythnetwork/hermes-client`) |
+| **Database** | Supabase (PostgreSQL, RLS, Service Role for admin) |
+| **Chain** | Tempo Testnet (Chain ID 42431), viem, ethers |
+| **Tokens** | TIP-20 (AlphaUSD, BetaUSD, ThetaUSD, PathUSD) |
+
+### Main env vars (see `.env`)
+
+- **Tempo:** `NEXT_PUBLIC_TEMPO_RPC_URL`, `NEXT_PUBLIC_TEMPO_CHAIN_ID`, `NEXT_PUBLIC_TREASURY_ADDRESS`, `TEMPO_TREASURY_SECRET_KEY`
+- **Privy:** `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`
+- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- **App:** `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_CHART_TIME_WINDOW`, etc.
+- **Token addresses:** `NEXT_PUBLIC_ALPHA_USD`, `NEXT_PUBLIC_BETA_USD`, `NEXT_PUBLIC_THETA_USD`, `NEXT_PUBLIC_PATH_USD`
+
+---
+
+## Getting started
 
 ### Prerequisites
--   Node.js 18+
--   npm or pnpm
--   A Supabase project
 
-### 1. clone & Install
+- Node.js 18+
+- npm or yarn
+- Supabase project
+- Privy app (for wallet auth)
+
+### 1. Clone and install
+
 ```bash
-git clone https://github.com/yourusername/tempnomo.git
+git clone https://github.com/AmaanSayyad/tempnomo.git
 cd tempnomo
 npm install
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory:
+### 2. Environment configuration
+
+Create a `.env` in the project root (see `.env.example` for a template). Minimum alignment with the codebase and [your `.env`](.env):
 
 ```env
-# App Config
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Tempo Network
+NEXT_PUBLIC_TEMPO_NETWORK=testnet
+NEXT_PUBLIC_TEMPO_RPC_URL=https://rpc.moderato.tempo.xyz
+NEXT_PUBLIC_TEMPO_CHAIN_ID=42431
+NEXT_PUBLIC_TEMPO_EXPLORER=https://explore.tempo.xyz
+
+# Privy
+NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
+PRIVY_APP_SECRET=your_privy_app_secret
+
+# Treasury (Tempo Testnet)
+NEXT_PUBLIC_TREASURY_ADDRESS=0x...   # Treasury contract/wallet address
+TEMPO_TREASURY_SECRET_KEY=0x...      # Hex, or 64-char hex, or 32-byte JSON array
+
+# App
+NEXT_PUBLIC_APP_NAME=Tempnomo
+NEXT_PUBLIC_CHART_TIME_WINDOW=300000
+
+# Tempo token addresses (testnet)
+NEXT_PUBLIC_ALPHA_USD=0x20c0000000000000000000000000000000000001
+NEXT_PUBLIC_BETA_USD=0x20c0000000000000000000000000000000000002
+NEXT_PUBLIC_THETA_USD=0x20c0000000000000000000000000000000000003
+NEXT_PUBLIC_PATH_USD=0x20c0000000000000000000000000000000000000
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_for_admin_tasks
-
-# Privy (Wallet Auth)
-NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
-PRIVY_APP_SECRET=your_privy_secret
-
-# Tempo Network & Treasury
-TEMPO_TREASURY_SECRET_KEY=your_treasury_wallet_private_key
-NEXT_PUBLIC_TEMPO_RPC=https://rpc.moderato.tempo.xyz
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-### 3. Database Setup
-Run the SQL migrations found in `tempo_schema.sql` in your Supabase SQL Editor to set up:
--   `balances` table
--   `bet_history` table
--   `leaderboard` view
--   RLS policies
+### 3. Database setup
 
-### 4. Run Development Server
+Apply Supabase migrations (e.g. in Supabase SQL Editor or via your migration runner):
+
+- `001_create_user_balances.sql` (or equivalent `balances` schema)
+- `002_bet_history.sql`, `002_create_balance_audit_log.sql`
+- `003_create_balance_procedures.sql`, `004_create_reconciliation_procedure.sql`
+
+This creates tables/views for balances, bet history, audit log, and RLS where used.
+
+### 4. Run the app
+
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-## 🎮 Game Mechanics
+Open [http://localhost:3000](http://localhost:3000).
 
-### Blitz Rounds
--   **Duration**: 30 seconds.
--   **Lock Period**: 5 seconds before round starts.
--   **Win Condition**: Correctly predict if price closes HIGHER or LOWER than strike price.
--   **Payout**: Dynamic multipliers (e.g., 1.9x for Classic, up to 10x for specialized pools).
+---
 
-### Balance System
--   **Deposit**: Transfers TIP-20 tokens to the App Treasury.
--   **Withdraw**: Triggers a server-side `transferTokenFromTreasury` call to send tokens back to the user.
+## Game modes
 
-## 🤝 Contributing
-1.  Fork the repo
-2.  Create your feature branch (`git checkout -b feature/amazing-feature`)
-3.  Commit your changes (`git commit -m 'Add some amazing feature'`)
-4.  Push to the branch (`git push origin feature/amazing-feature`)
-5.  Open a Pull Request
+- **Classic** — Choose UP or DOWN and expiry (5s–1m). Win if price is above (UP) or below (DOWN) strike at expiry.
+- **Box** — Grid of multiplier tiles. Place a bet on a tile; win if the live price line touches that tile at start. Blitz rounds apply a multiplier boost.
 
-## 📄 License
-MIT License
+House balance is used for all bets; no per-bet transaction signing. Withdrawals are processed by the backend from the treasury.
+
+---
+
+## Future
+
+- **Assets:** Expand to more stocks, forex, options, derivatives, futures.
+- **Product:** DEX integration, more resolution types, and richer markets.
+- **Goal:** Become the go-to PolyMarket-style experience for binary options—fast, oracle-backed, and on-chain where it matters (deposits/withdrawals).
+
+---
+
+## Contributing
+
+1. Fork the repo.
+2. Create a feature branch (`git checkout -b feature/amazing-feature`).
+3. Commit changes (`git commit -m 'Add some amazing feature'`).
+4. Push and open a Pull Request.

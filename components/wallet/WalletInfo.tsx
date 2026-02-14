@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useStore } from '@/lib/store';
+import { TEMPO_TOKEN_LIST } from '@/lib/tempo/config';
 
 /**
  * WalletInfo Component - Tempo Network Version
@@ -34,7 +35,8 @@ export const WalletInfo: React.FC = () => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const currencySymbol = 'αUSD'; // Default for Tempo rebranding
+  const currentToken = TEMPO_TOKEN_LIST.find((t) => t.address === selectedToken) || TEMPO_TOKEN_LIST[0];
+  const currencySymbol = currentToken.symbol;
   const networkName = 'Tempo Network';
   const balance = walletBalance.toFixed(4);
 

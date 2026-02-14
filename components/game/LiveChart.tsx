@@ -951,6 +951,8 @@ export const LiveChart: React.FC<LiveChartProps> = ({ betAmount, setBetAmount })
           const expirationX = scales.xScale(bet.endTime);
           const nowX = scales.tipX;
 
+          // Skip if any coordinate is NaN or invalid (avoids React SVG warning)
+          if (!Number.isFinite(strikeY) || !Number.isFinite(expirationX) || !Number.isFinite(nowX)) return null;
           // Only show if expiration is in the future
           if (expirationX < 0) return null;
 
@@ -988,16 +990,22 @@ export const LiveChart: React.FC<LiveChartProps> = ({ betAmount, setBetAmount })
               )}
 
               {/* Price Filling Area (Optional but looks cool) */}
-              {expirationX > nowX && (
-                <rect
-                  x={nowX}
-                  y={isUp ? Math.min(strikeY, scales.yScale(currentPrice)) : strikeY}
-                  width={expirationX - nowX}
-                  height={Math.abs(strikeY - scales.yScale(currentPrice))}
-                  fill={color}
-                  fillOpacity="0.05"
-                />
-              )}
+              {expirationX > nowX && (() => {
+                const currentPriceY = scales.yScale(currentPrice);
+                if (!Number.isFinite(currentPriceY)) return null;
+                const fillY = isUp ? Math.min(strikeY, currentPriceY) : strikeY;
+                const fillHeight = Math.abs(strikeY - currentPriceY);
+                return (
+                  <rect
+                    x={nowX}
+                    y={fillY}
+                    width={expirationX - nowX}
+                    height={fillHeight}
+                    fill={color}
+                    fillOpacity="0.05"
+                  />
+                );
+              })()}
 
               {/* Label at Strike Price */}
               <text

@@ -6,7 +6,7 @@ import { LiveChart } from './';
 import { BalanceDisplay } from '@/components/balance';
 import { startPriceFeed } from '@/lib/store/gameSlice';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { TEMPO_CHAIN, getTreasuryAddress } from '@/lib/tempo/config';
+import { TEMPO_CHAIN, getTreasuryAddress, TEMPO_TOKEN_LIST } from '@/lib/tempo/config';
 import { getAddress } from 'viem';
 import { ethers } from 'ethers';
 import { useToast } from '@/lib/hooks/useToast';
@@ -56,8 +56,9 @@ export const GameBoard: React.FC = () => {
 
   const toast = useToast();
 
-  // Unified balance and currency - Tempo network uses αUSD mostly for game balance display
-  const currencySymbol = 'αUSD';
+  // Use selected token for wallet/house balance labels (αUSD, βUSD, pUSD, etc.)
+  const currentToken = TEMPO_TOKEN_LIST.find((t) => t.address === selectedToken) || TEMPO_TOKEN_LIST[0];
+  const currencySymbol = currentToken.symbol;
   const blitzEntryFee = 0.01;
 
   const handleEnterBlitz = async () => {
@@ -81,15 +82,23 @@ export const GameBoard: React.FC = () => {
       setIsActivatingBlitz(true);
 
       if (network === 'TEMPO') {
+        const treasuryAddress = getTreasuryAddress();
+        const treasuryNormalized = getAddress(treasuryAddress);
+        const userNormalized = getAddress(address as `0x${string}`);
+
+        if (treasuryNormalized.toLowerCase() === userNormalized.toLowerCase()) {
+          toast.error("Treasury misconfigured: NEXT_PUBLIC_TREASURY_ADDRESS must be the game treasury, not your wallet. Check .env");
+          setIsActivatingBlitz(false);
+          return;
+        }
+
         const ethereumProvider = await wallet.getEthereumProvider();
         const provider = new ethers.BrowserProvider(ethereumProvider);
         const signer = await provider.getSigner();
 
-        const treasuryAddress = getTreasuryAddress();
-
-        toast.info(`Confirming ${blitzEntryFee} αUSD Blitz Entry...`);
+        toast.info(`Confirming ${blitzEntryFee} ${currencySymbol} Blitz Entry...`);
         const txResponse = await signer.sendTransaction({
-          to: getAddress(treasuryAddress),
+          to: treasuryNormalized,
           value: ethers.parseEther(blitzEntryFee.toString()),
         });
         console.log("Tempo Blitz payment tx:", txResponse.hash);
@@ -107,6 +116,8 @@ export const GameBoard: React.FC = () => {
       const errorMessage = err.message || "";
       if (errorMessage.includes('rejected') || errorMessage.includes('denied') || errorMessage.includes('User rejected')) {
         toast.error("User rejected");
+      } else if (errorMessage.includes('CALL_EXCEPTION') || errorMessage.includes('revert') || errorMessage.includes('estimateGas')) {
+        toast.error("Blitz payment failed. Check that NEXT_PUBLIC_TREASURY_ADDRESS in .env is the game treasury address and you have enough native token for the 0.01 fee.");
       } else {
         toast.error(errorMessage || "Failed to enter Blitz Round");
       }
