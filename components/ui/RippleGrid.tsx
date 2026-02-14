@@ -195,7 +195,7 @@ void main() {
             uniforms.iResolution.value = [w, h];
         };
 
-        const handleMouseMove = e => {
+        const handleMouseMove = (e: MouseEvent) => {
             if (!mouseInteraction || !containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
@@ -221,7 +221,7 @@ void main() {
         }
         resize();
 
-        const render = t => {
+        const render = (t: number) => {
             uniforms.iTime.value = t * 0.001;
 
             const lerpFactor = 0.1;

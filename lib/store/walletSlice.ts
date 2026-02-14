@@ -13,7 +13,9 @@ export interface WalletState {
   walletBalance: number;
   isConnected: boolean;
   isConnecting: boolean;
-  network: 'TEMPO' | null;
+  network: 'TEMPO' | 'BNB' | 'SOL' | null;
+  /** Which chain's wallet drives the store (used by BNB/SOL sync hooks). */
+  preferredNetwork: 'TEMPO' | 'BNB' | 'SOL' | null;
   selectedToken: string; // Selected token address for gameplay
   error: string | null;
   connect: () => Promise<void>;
@@ -24,7 +26,8 @@ export interface WalletState {
   // Setters for wallet integration
   setAddress: (address: string | null) => void;
   setIsConnected: (connected: boolean) => void;
-  setNetwork: (network: 'TEMPO' | null) => void;
+  setNetwork: (network: 'TEMPO' | 'BNB' | 'SOL' | null) => void;
+  setPreferredNetwork: (network: 'TEMPO' | 'BNB' | 'SOL' | null) => void;
   setSelectedToken: (token: string) => void;
 }
 
@@ -39,6 +42,7 @@ export const createWalletSlice: StateCreator<WalletState> = (set, get) => ({
   isConnected: false,
   isConnecting: false,
   network: null,
+  preferredNetwork: null,
   selectedToken: '0x20c0000000000000000000000000000000000001', // Default: AlphaUSD
   error: null,
 
@@ -107,8 +111,15 @@ export const createWalletSlice: StateCreator<WalletState> = (set, get) => ({
   /**
    * Set active network
    */
-  setNetwork: (network: 'TEMPO' | null) => {
+  setNetwork: (network: 'TEMPO' | 'BNB' | 'SOL' | null) => {
     set({ network });
+  },
+
+  /**
+   * Set preferred chain (which wallet drives the store; used by BNB/SOL hooks).
+   */
+  setPreferredNetwork: (network: 'TEMPO' | 'BNB' | 'SOL' | null) => {
+    set({ preferredNetwork: network });
   },
 
   /**
