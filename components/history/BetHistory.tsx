@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { Card } from '@/components/ui/Card';
 import { BetCard } from './BetCard';
 import { calculateBetStats, filterBets } from '@/lib/store/historySlice';
+import { TEMPO_TOKEN_LIST } from '@/lib/tempo/config';
 
 type FilterType = 'all' | 'wins' | 'losses' | 'active';
 
@@ -16,8 +17,8 @@ export const BetHistory: React.FC = () => {
   const isConnected = useStore((state) => state.isConnected);
   const selectedToken = useStore((state) => state.selectedToken);
 
-  // Get current token info for symbol display
-  const currencySymbol = selectedToken?.symbol || 'αUSD'; // Default for Tempo rebranding
+  const currentToken = TEMPO_TOKEN_LIST.find((t) => t.address === selectedToken) || TEMPO_TOKEN_LIST[0];
+  const currencySymbol = currentToken.symbol;
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedBetId, setSelectedBetId] = useState<string | null>(null);
